@@ -1,43 +1,48 @@
 # Chat App — DevOps Demo
 
-A simple real-time Chat App built to demonstrate the full DevOps lifecycle — from writing code to automatic deployment.
+A simple real-time Chat App demonstrating the full DevOps lifecycle — from writing code to automatic deployment.
 
 > Built for II Year B.E. CSE students · CS25C10 Object Oriented Software Engineering
 
 ---
 
-## What is inside
+## DevOps Lifecycle — How this project follows it
 
-| File / Folder | What it does |
-|---|---|
-| `src/` | Node.js + Express backend API |
-| `public/` | WhatsApp-style chat frontend |
-| `test/` | 4 automated tests (Node built-in test runner) |
-| `Dockerfile` | Packages the app into a container image |
-| `.github/workflows/ci.yml` | Full CI/CD pipeline — runs on every push to main |
-
-> **Note:** Messages are stored in memory and reset when the server restarts. Intentional — keeps the demo simple.
+| # | Stage | Tool used | What happens in this project |
+|---|---|---|---|
+| 1 | **Plan** | GitHub Issues | Features and tasks tracked as issues |
+| 2 | **Code** | Git + GitHub | Every change committed and pushed to GitHub |
+| 3 | **Build** | Node.js + Docker | Dependencies installed, Docker image built |
+| 4 | **Test** | Node test runner | 4 automated tests run on every push |
+| 5 | **Package** | Docker Hub | Versioned image pushed (`devops_chat_app:<sha>`) |
+| 6 | **Deploy** | Render | Docker image pulled and app goes live automatically |
+| 7 | **Operate** | Render | App runs as a containerised service on the cloud |
+| 8 | **Monitor** | Render logs + `/api/health` | Logs, metrics and health endpoint visible on Render |
 
 ---
 
-## The pipeline — fully automatic
+## CI/CD Pipeline — fully automatic
 
-Every `git push` to `main` triggers all 4 jobs in order:
+Every `git push` to `main` triggers 6 jobs in order, each matching a DevOps stage:
 
 ```
-push to main
+git push to main
     ↓
-1. Test          — installs deps, runs 4 automated tests
+Step 1 · Code     — checkout code, log commit info
     ↓
-2. Build & Push  — builds Docker image, pushes to Docker Hub
-                   tags: praveenkumarr03/devops_chat_app:<sha> + latest
+Step 2 · Build    — install Node.js dependencies
     ↓
-3. Deploy        — calls Render deploy hook → Render pulls new image and goes live
+Step 3 · Test     — run 4 automated tests (stops here if any fail)
     ↓
-4. Release       — creates a GitHub Release tagged v2026.10.22-<sha>
+Step 4 · Package  — build Docker image → push to Docker Hub
+                    tags: <your-username>/devops_chat_app:<sha> + latest
+    ↓
+Step 5 · Deploy   — call Render deploy hook → app goes live
+    ↓
+Step 6 · Release  — create GitHub Release tag v<date>-<sha>
 ```
 
-Pull requests only run **Step 1 (tests)** — no deploy on PRs.
+Pull requests only run **Steps 1–3 (code, build, test)** — no deploy on PRs.
 
 ---
 
@@ -47,13 +52,28 @@ Go to your repo → **Settings → Secrets and variables → Actions → New rep
 
 | Secret | Value |
 |---|---|
-| `DOCKERHUB_USERNAME` | `praveenkumarr03` |
-| `DOCKERHUB_TOKEN` | Docker Hub access token (Account Settings → Security → New Access Token) |
-| `RENDER_DEPLOY_HOOK_URL` | Render service → Settings → Deploy Hook |
+| `DOCKERHUB_USERNAME` | Your Docker Hub username |
+| `DOCKERHUB_TOKEN` | Docker Hub → Account Settings → Security → New Access Token |
+| `RENDER_DEPLOY_HOOK_URL` | Render service → Settings → Deploy Hook URL |
 
 ---
 
-## Step 1 — Run locally
+## What is inside
+
+| File / Folder | What it does |
+|---|---|
+| `src/` | Node.js + Express backend API |
+| `public/index.html` | Login page |
+| `public/chat.html` | WhatsApp-style chat UI |
+| `test/` | 4 automated tests |
+| `Dockerfile` | Packages the app into a container image |
+| `.github/workflows/pipeline.yml` | Full CI/CD pipeline — 6 steps |
+
+> **Note:** Messages are stored in memory and reset when the server restarts. Intentional — keeps the demo simple.
+
+---
+
+## Run locally
 
 ```bash
 npm install
@@ -61,13 +81,19 @@ npm test        # 4 tests should pass
 npm start       # starts server at http://localhost:3000
 ```
 
-Open two browser tabs at **http://localhost:3000** — enter different names and chat between tabs.
+Open **http://localhost:3000** — you will see the login page.
+
+**Multi-tab chat:**
+- Open two browser tabs at http://localhost:3000
+- Enter a different name in each tab
+- Messages from Tab 1 appear on the right (green) in Tab 1 and left (white) in Tab 2
+- The app polls every 2.5 seconds — messages appear automatically across tabs
 
 Health check: http://localhost:3000/api/health → `{"status":"ok"}`
 
 ---
 
-## Step 2 — Run with Docker
+## Run with Docker
 
 ```bash
 docker build -t chat-app .
@@ -76,40 +102,24 @@ docker run --rm -p 3000:3000 chat-app
 
 ---
 
-## Step 3 — Set up Render
+## Set up Render (cloud deployment)
 
 1. Sign in at https://render.com
-2. **New → Web Service → Connect GitHub repo** (`PraveenkumarR03/devops_chat_app`)
+2. **New → Web Service → Connect GitHub repo**
 3. Runtime: **Docker**
 4. Create the service
-5. Go to **Settings → Deploy Hook** → copy the URL → add as `RENDER_DEPLOY_HOOK_URL` secret in GitHub
+5. **Settings → Deploy Hook** → copy the URL → add as `RENDER_DEPLOY_HOOK_URL` secret in GitHub
 
 ---
 
-## Step 4 — Push and watch it deploy
+## Monitor in production
 
-```bash
-git add .
-git commit -m "your message"
-git push
-```
-
-Go to **github.com/PraveenkumarR03/devops_chat_app/actions** — watch all 4 jobs run automatically.
-
----
-
-## How this maps to the DevOps lifecycle
-
-| DevOps Stage | Tool | What happens |
-|---|---|---|
-| Plan | GitHub Issues | Track features and tasks |
-| Code | Git + GitHub | Version control, branches, pull requests |
-| Build | Docker | Package app into a container image |
-| Test | Node test runner | 4 automated tests on every push |
-| CI | GitHub Actions | Auto pipeline triggered on push |
-| Deploy | Render | Auto-deploy via deploy hook |
-| Release | GitHub Releases | Auto-tagged after every successful deploy |
-| Monitor | Render logs + `/api/health` | Watch app health in production |
+| What to check | Where |
+|---|---|
+| App logs (requests, errors) | Render dashboard → Logs tab |
+| Deploy history | Render dashboard → Events tab |
+| Health check | `https://your-app.onrender.com/api/health` |
+| Pipeline runs | GitHub repo → Actions tab |
 
 ---
 

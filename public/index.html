@@ -3,390 +3,156 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chat App</title>
+  <title>Chat App — Join</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #e5ddd5;
-      height: 100dvh;
+      background: #075e54;
+      min-height: 100dvh;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 20px;
     }
 
-    /* ── app shell ── */
-    .app {
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 32px;
       width: 100%;
-      max-width: 480px;
-      height: 100dvh;
-      background: #fff;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 0 40px rgba(0,0,0,.18);
+      max-width: 380px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.25);
+      text-align: center;
     }
 
-    /* ── name modal ── */
-    #name-modal {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.45);
+    .logo {
+      width: 72px; height: 72px;
+      background: #25d366;
+      border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      z-index: 100;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 20px rgba(37,211,102,.35);
     }
-    .modal-box {
-      background: #fff;
-      border-radius: 16px;
-      padding: 28px 24px;
-      width: min(360px, 90vw);
-      box-shadow: 0 20px 50px rgba(0,0,0,.2);
-    }
-    .modal-box h2 { font-size: 1.15rem; color: #111; margin-bottom: 6px; }
-    .modal-box p { font-size: .88rem; color: #667; margin-bottom: 16px; }
-    .modal-box input {
-      width: 100%; border: 1.5px solid #d1d5db; border-radius: 10px;
-      padding: 11px 14px; font: inherit; font-size: 1rem; outline: none;
+    .logo svg { width: 40px; height: 40px; fill: #fff; }
+
+    h1 {
+      font-size: 1.5rem;
       color: #111;
+      margin-bottom: 6px;
     }
-    .modal-box input:focus { border-color: #25d366; }
-    .modal-box button {
-      width: 100%; margin-top: 12px;
-      background: #25d366; border: none; border-radius: 10px;
-      padding: 12px; color: #fff; font: inherit; font-size: 1rem;
-      font-weight: 700; cursor: pointer;
-    }
-    .modal-box button:hover { background: #1ebe5a; }
-
-    /* ── header ── */
-    header {
-      background: #075e54;
-      color: #fff;
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-shrink: 0;
-    }
-    .hd-avatar {
-      width: 40px; height: 40px; border-radius: 50%;
-      background: #128c7e;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 1rem; flex-shrink: 0;
-    }
-    .hd-name { font-weight: 700; font-size: .98rem; }
-    .hd-sub { font-size: .75rem; color: #b2dfdb; margin-top: 1px; }
-    .hd-right { margin-left: auto; font-size: .72rem; color: #b2dfdb; }
-
-    /* ── wallpaper chat area ── */
-    #chat-area {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      background-color: #e5ddd5;
-      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9b8a8' fill-opacity='0.18'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-      scroll-behavior: smooth;
-    }
-
-    .empty-state {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 6px; color: #888; font-size: .9rem;
-      padding: 40px 0;
-    }
-    .empty-icon { font-size: 2.2rem; }
-
-    /* date chip */
-    .date-chip {
-      align-self: center;
-      background: #e1f3fb;
-      color: #555;
-      font-size: .72rem;
-      padding: 3px 10px;
-      border-radius: 999px;
-      margin: 6px 0;
-    }
-
-    /* ── bubbles ── */
-    .bubble-wrap {
-      display: flex;
-      flex-direction: column;
-      max-width: 78%;
-    }
-    .bubble-wrap.me { align-self: flex-end; align-items: flex-end; }
-    .bubble-wrap.them { align-self: flex-start; align-items: flex-start; }
-
-    .bubble {
-      padding: 7px 10px 5px;
-      border-radius: 8px;
-      font-size: .93rem;
-      line-height: 1.45;
-      position: relative;
-      word-break: break-word;
-      box-shadow: 0 1px 1px rgba(0,0,0,.1);
-    }
-    .me .bubble {
-      background: #dcf8c6;
-      border-top-right-radius: 2px;
-      color: #111;
-    }
-    .them .bubble {
-      background: #fff;
-      border-top-left-radius: 2px;
-      color: #111;
-    }
-    .bubble-name {
-      font-size: .72rem;
-      font-weight: 700;
-      color: #128c7e;
-      margin-bottom: 2px;
-    }
-    .me .bubble-name { color: #075e54; }
-    .bubble-meta {
-      font-size: .67rem;
+    .sub {
+      font-size: .9rem;
       color: #888;
-      margin-top: 2px;
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      justify-content: flex-end;
+      margin-bottom: 28px;
+      line-height: 1.5;
     }
-    .tick { color: #4fc3f7; }
 
-    /* ── input bar ── */
-    .input-bar {
-      background: #f0f0f0;
-      border-top: 1px solid #ddd;
-      padding: 8px 10px;
-      display: flex;
-      align-items: flex-end;
-      gap: 8px;
-      flex-shrink: 0;
+    label {
+      display: block;
+      text-align: left;
+      font-size: .82rem;
+      font-weight: 700;
+      color: #555;
+      margin-bottom: 6px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
     }
-    .input-wrap {
-      flex: 1;
-      background: #fff;
-      border-radius: 24px;
+
+    input {
+      width: 100%;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 13px 16px;
+      font: inherit;
+      font-size: 1rem;
+      color: #111;
+      outline: none;
+      transition: border-color .15s;
+      margin-bottom: 16px;
+    }
+    input:focus { border-color: #25d366; }
+    input::placeholder { color: #bbb; }
+
+    button {
+      width: 100%;
+      background: #25d366;
       border: none;
-      display: flex;
-      align-items: flex-end;
-      padding: 6px 14px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.08);
-    }
-    #message-input {
-      flex: 1; border: none; outline: none;
-      font: inherit; font-size: .95rem;
-      background: transparent; color: #111;
-      resize: none; max-height: 90px;
-      scrollbar-width: none; line-height: 1.4;
-    }
-    #message-input::placeholder { color: #aaa; }
-    #char-count { font-size: .68rem; color: #bbb; align-self: flex-end; padding-bottom: 1px; white-space: nowrap; }
-    #char-count.warn { color: #f59e0b; }
-    #char-count.over { color: #ef4444; }
-
-    #send-btn {
-      width: 46px; height: 46px; border-radius: 50%;
-      background: #25d366; border: none;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; flex-shrink: 0;
-      box-shadow: 0 2px 6px rgba(37,211,102,.35);
+      border-radius: 12px;
+      padding: 14px;
+      color: #fff;
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
       transition: background .15s;
+      box-shadow: 0 4px 14px rgba(37,211,102,.35);
     }
-    #send-btn:hover { background: #1ebe5a; }
-    #send-btn:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
-    #send-btn svg { width: 22px; height: 22px; fill: #fff; }
+    button:hover { background: #1ebe5a; }
+    button:disabled { background: #a8e6bf; box-shadow: none; cursor: not-allowed; }
 
-    #feedback { font-size: .78rem; color: #e53e3e; padding: 2px 16px 4px; background: #f0f0f0; min-height: 0; }
+    .error {
+      font-size: .82rem;
+      color: #e53e3e;
+      margin-top: -10px;
+      margin-bottom: 12px;
+      text-align: left;
+      min-height: 18px;
+    }
+
+    .footer {
+      margin-top: 24px;
+      font-size: .75rem;
+      color: #bbb;
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
-
-<!-- Name modal -->
-<div id="name-modal">
-  <div class="modal-box">
-    <h2>👋 Welcome to Chat App</h2>
-    <p>Enter your name to join the room. Open this in another tab to chat with yourself!</p>
-    <input id="name-input" maxlength="30" placeholder="Your name…" autocomplete="off">
-    <button id="join-btn">Join Chat</button>
-  </div>
-</div>
-
-<div class="app">
-  <!-- Header -->
-  <header>
-    <div class="hd-avatar">C</div>
-    <div>
-      <div class="hd-name">Chat Room</div>
-      <div class="hd-sub" id="hd-sub">Connecting…</div>
+  <div class="card">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
     </div>
-    <div class="hd-right" id="hd-right"></div>
-  </header>
+    <h1>Chat App</h1>
+    <p class="sub">Enter your name to join the chat room.<br>Open in another tab to chat with yourself!</p>
 
-  <!-- Chat -->
-  <div id="chat-area">
-    <div class="empty-state" id="empty-state">
-      <div class="empty-icon">💬</div>
-      <div>No messages yet. Say hello!</div>
-    </div>
+    <form id="join-form">
+      <label for="name-input">Your name</label>
+      <input id="name-input" type="text" maxlength="30" placeholder="e.g. Praveen" autocomplete="off" autofocus>
+      <div class="error" id="error"></div>
+      <button type="submit" id="join-btn">Join Chat →</button>
+    </form>
+
+    <div class="footer">DevOps Demo · CS25C10 · Node.js + Express + Docker</div>
   </div>
 
-  <!-- Feedback -->
-  <div id="feedback" role="status"></div>
+  <script>
+    const form = document.getElementById("join-form");
+    const nameInput = document.getElementById("name-input");
+    const errorEl = document.getElementById("error");
+    const joinBtn = document.getElementById("join-btn");
 
-  <!-- Input -->
-  <form class="input-bar" id="message-form">
-    <div class="input-wrap">
-      <textarea id="message-input" rows="1" maxlength="280" placeholder="Type a message…" aria-label="Message"></textarea>
-      <span id="char-count"></span>
-    </div>
-    <button type="submit" id="send-btn" aria-label="Send">
-      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
-    </button>
-  </form>
-</div>
-
-<script>
-  let myName = "";
-  let lastId = 0;
-  let pollTimer = null;
-
-  const modal = document.getElementById("name-modal");
-  const nameInput = document.getElementById("name-input");
-  const joinBtn = document.getElementById("join-btn");
-  const chatArea = document.getElementById("chat-area");
-  const form = document.getElementById("message-form");
-  const input = document.getElementById("message-input");
-  const feedback = document.getElementById("feedback");
-  const charCount = document.getElementById("char-count");
-  const sendBtn = document.getElementById("send-btn");
-  const hdSub = document.getElementById("hd-sub");
-  const hdRight = document.getElementById("hd-right");
-
-  // ── join ──
-  nameInput.focus();
-  nameInput.addEventListener("keydown", e => { if (e.key === "Enter") joinBtn.click(); });
-
-  joinBtn.addEventListener("click", () => {
-    const n = nameInput.value.trim();
-    if (!n) { nameInput.focus(); return; }
-    myName = n;
-    modal.remove();
-    hdSub.textContent = "You: " + myName;
-    input.focus();
-    loadMessages();
-    pollTimer = setInterval(loadMessages, 2500);
-  });
-
-  // ── textarea auto-resize ──
-  input.addEventListener("input", () => {
-    input.style.height = "auto";
-    input.style.height = Math.min(input.scrollHeight, 90) + "px";
-    const len = input.value.length;
-    charCount.textContent = len > 200 ? len + "/280" : "";
-    charCount.className = len > 260 ? "over" : len > 220 ? "warn" : "";
-  });
-
-  input.addEventListener("keydown", e => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
-  });
-
-  // ── helpers ──
-  function timeStr(iso) {
-    return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-
-  function todayStr() {
-    return new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
-  }
-
-  function removeEmpty() {
-    const es = document.getElementById("empty-state");
-    if (es) es.remove();
-  }
-
-  let shownDateChip = false;
-
-  function renderMessage(msg) {
-    const isMe = msg.name === myName;
-
-    if (!shownDateChip) {
-      shownDateChip = true;
-      const chip = document.createElement("div");
-      chip.className = "date-chip";
-      chip.textContent = todayStr();
-      chatArea.appendChild(chip);
+    // if already joined, go straight to chat
+    if (sessionStorage.getItem("chat_name")) {
+      window.location.replace("chat.html");
     }
 
-    const wrap = document.createElement("div");
-    wrap.className = "bubble-wrap " + (isMe ? "me" : "them");
-    wrap.dataset.id = msg.id;
-
-    const nameEl = document.createElement("div");
-    nameEl.className = "bubble-name";
-    nameEl.textContent = isMe ? "You" : msg.name;
-
-    const bubble = document.createElement("div");
-    bubble.className = "bubble";
-    bubble.textContent = msg.text;
-
-    const meta = document.createElement("div");
-    meta.className = "bubble-meta";
-    meta.innerHTML = timeStr(msg.createdAt) + (isMe ? ' <span class="tick">✓✓</span>' : '');
-
-    wrap.appendChild(nameEl);
-    wrap.appendChild(bubble);
-    wrap.appendChild(meta);
-    chatArea.appendChild(wrap);
-  }
-
-  async function loadMessages() {
-    try {
-      const res = await fetch("/api/messages");
-      const data = await res.json();
-      const msgs = data.messages;
-
-      hdRight.textContent = msgs.length + " msg" + (msgs.length !== 1 ? "s" : "");
-
-      const newMsgs = msgs.filter(m => m.id > lastId);
-      if (!newMsgs.length) return;
-
-      removeEmpty();
-      const wasAtBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight < 60;
-
-      newMsgs.forEach(m => { renderMessage(m); lastId = m.id; });
-
-      if (wasAtBottom) chatArea.scrollTop = chatArea.scrollHeight;
-    } catch (_) {
-      hdSub.textContent = "Connection error";
-    }
-  }
-
-  form.addEventListener("submit", async e => {
-    e.preventDefault();
-    feedback.textContent = "";
-    const text = input.value.trim();
-    if (!text) return;
-    sendBtn.disabled = true;
-
-    const res = await fetch("/api/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, name: myName })
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+      if (!name) {
+        errorEl.textContent = "Please enter your name.";
+        nameInput.focus();
+        return;
+      }
+      errorEl.textContent = "";
+      joinBtn.disabled = true;
+      sessionStorage.setItem("chat_name", name);
+      window.location.href = "chat.html";
     });
-    const data = await res.json();
-    sendBtn.disabled = false;
 
-    if (!res.ok) { feedback.textContent = data.error || "Could not send."; return; }
-
-    input.value = "";
-    input.style.height = "auto";
-    charCount.textContent = "";
-    input.focus();
-    await loadMessages();
-  });
-</script>
+    nameInput.addEventListener("input", () => { errorEl.textContent = ""; });
+  </script>
 </body>
 </html>

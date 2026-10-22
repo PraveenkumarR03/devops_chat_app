@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat App</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #e5ddd5;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 480px;
+      height: 100dvh;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 40px rgba(0,0,0,.18);
+    }
+
+    /* ── header ── */
+    header {
+      background: #075e54;
+      color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .hd-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: #128c7e;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem; flex-shrink: 0;
+      cursor: pointer;
+      title: "Leave chat";
+    }
+    .hd-name { font-weight: 700; font-size: .98rem; }
+    .hd-sub { font-size: .75rem; color: #b2dfdb; margin-top: 1px; }
+    .hd-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .hd-count { font-size: .72rem; color: #b2dfdb; }
+    .leave-btn {
+      background: none; border: none; color: #b2dfdb;
+      font-size: .78rem; cursor: pointer; padding: 4px 8px;
+      border-radius: 6px; border: 1px solid rgba(255,255,255,.2);
+    }
+    .leave-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+    /* ── chat area ── */
+    #chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background-color: #e5ddd5;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9b8a8' fill-opacity='0.18'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      scroll-behavior: smooth;
+    }
+
+    .empty-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 6px; color: #888; font-size: .9rem; padding: 40px 0;
+    }
+    .empty-icon { font-size: 2.2rem; }
+
+    .date-chip {
+      align-self: center;
+      background: #e1f3fb;
+      color: #555;
+      font-size: .72rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin: 6px 0;
+    }
+
+    /* ── bubbles ── */
+    .bubble-wrap {
+      display: flex;
+      flex-direction: column;
+      max-width: 78%;
+    }
+    .bubble-wrap.me { align-self: flex-end; align-items: flex-end; }
+    .bubble-wrap.them { align-self: flex-start; align-items: flex-start; }
+
+    .bubble {
+      padding: 7px 10px 5px;
+      border-radius: 8px;
+      font-size: .93rem;
+      line-height: 1.45;
+      position: relative;
+      word-break: break-word;
+      box-shadow: 0 1px 1px rgba(0,0,0,.1);
+    }
+    .me .bubble { background: #dcf8c6; border-top-right-radius: 2px; color: #111; }
+    .them .bubble { background: #fff; border: 1px solid #eee; border-top-left-radius: 2px; color: #111; }
+
+    .bubble-name { font-size: .72rem; font-weight: 700; color: #128c7e; margin-bottom: 2px; }
+    .me .bubble-name { color: #075e54; }
+
+    .bubble-meta {
+      font-size: .67rem; color: #888; margin-top: 2px;
+      display: flex; align-items: center; gap: 3px; justify-content: flex-end;
+    }
+    .tick { color: #4fc3f7; }
+
+    /* ── input bar ── */
+    .input-bar {
+      background: #f0f0f0;
+      border-top: 1px solid #ddd;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .input-wrap {
+      flex: 1;
+      background: #fff;
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      padding: 8px 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    #message-input {
+      flex: 1; border: none; outline: none;
+      font: inherit; font-size: .95rem;
+      background: transparent; color: #111;
+      resize: none; max-height: 90px;
+      scrollbar-width: none; line-height: 1.4;
+    }
+    #message-input::placeholder { color: #aaa; }
+    #char-count { display: none; font-size: .68rem; color: #bbb; white-space: nowrap; margin-left: 6px; }
+    #char-count.warn { display: inline; color: #f59e0b; }
+    #char-count.over  { display: inline; color: #ef4444; }
+
+    #send-btn {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: #25d366; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(37,211,102,.35);
+      transition: background .15s;
+    }
+    #send-btn:hover { background: #1ebe5a; }
+    #send-btn:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+    #send-btn svg { width: 22px; height: 22px; fill: #fff; }
+
+    #feedback { font-size: .78rem; color: #e53e3e; padding: 2px 16px 4px; background: #f0f0f0; min-height: 0; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="hd-avatar" id="hd-avatar">C</div>
+    <div>
+      <div class="hd-name">Chat Room</div>
+      <div class="hd-sub" id="hd-sub">Connecting…</div>
+    </div>
+    <div class="hd-right">
+      <span class="hd-count" id="hd-count"></span>
+      <button class="leave-btn" id="leave-btn">Leave</button>
+    </div>
+  </header>
+
+  <div id="chat-area">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">💬</div>
+      <div>No messages yet. Say hello!</div>
+    </div>
+  </div>
+
+  <div id="feedback" role="status"></div>
+
+  <form class="input-bar" id="message-form">
+    <div class="input-wrap">
+      <textarea id="message-input" rows="1" maxlength="280" placeholder="Type a message…" aria-label="Message"></textarea>
+      <span id="char-count"></span>
+    </div>
+    <button type="submit" id="send-btn" aria-label="Send">
+      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+    </button>
+  </form>
+</div>
+
+<script>
+  // ── guard: redirect to login if no name ──
+  const myName = sessionStorage.getItem("chat_name");
+  if (!myName) window.location.replace("index.html");
+
+  let lastId = 0;
+  let shownDateChip = false;
+
+  const chatArea   = document.getElementById("chat-area");
+  const form       = document.getElementById("message-form");
+  const input      = document.getElementById("message-input");
+  const feedback   = document.getElementById("feedback");
+  const charCount  = document.getElementById("char-count");
+  const sendBtn    = document.getElementById("send-btn");
+  const hdSub      = document.getElementById("hd-sub");
+  const hdCount    = document.getElementById("hd-count");
+  const hdAvatar   = document.getElementById("hd-avatar");
+  const leaveBtn   = document.getElementById("leave-btn");
+
+  // show initial
+  hdSub.textContent = "You: " + myName;
+  hdAvatar.textContent = myName.charAt(0).toUpperCase();
+
+  // leave
+  leaveBtn.addEventListener("click", () => {
+    localStorage.removeItem("chat_name");
+    sessionStorage.removeItem("chat_name");
+    window.location.href = "index.html";
+  });
+
+  // auto-resize textarea
+  input.addEventListener("input", () => {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 90) + "px";
+    const len = input.value.length;
+    charCount.textContent = len + "/280";
+    charCount.className = len > 260 ? "over" : len > 220 ? "warn" : "";
+  });
+
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+  });
+
+  function timeStr(iso) {
+    return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function todayStr() {
+    return new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+  }
+
+  function removeEmpty() {
+    const es = document.getElementById("empty-state");
+    if (es) es.remove();
+  }
+
+  function renderMessage(msg) {
+    const isMe = msg.name === myName;
+
+    if (!shownDateChip) {
+      shownDateChip = true;
+      const chip = document.createElement("div");
+      chip.className = "date-chip";
+      chip.textContent = todayStr();
+      chatArea.appendChild(chip);
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "bubble-wrap " + (isMe ? "me" : "them");
+    wrap.dataset.id = msg.id;
+
+    const nameEl = document.createElement("div");
+    nameEl.className = "bubble-name";
+    nameEl.textContent = isMe ? "You" : msg.name;
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = msg.text;
+
+    const meta = document.createElement("div");
+    meta.className = "bubble-meta";
+    meta.innerHTML = timeStr(msg.createdAt) + (isMe ? ' <span class="tick">✓✓</span>' : "");
+
+    wrap.appendChild(nameEl);
+    wrap.appendChild(bubble);
+    wrap.appendChild(meta);
+    chatArea.appendChild(wrap);
+  }
+
+  async function loadMessages() {
+    try {
+      const res  = await fetch("/api/messages");
+      const data = await res.json();
+      const msgs = data.messages;
+
+      hdCount.textContent = msgs.length + " msg" + (msgs.length !== 1 ? "s" : "");
+
+      const newMsgs = msgs.filter(m => m.id > lastId);
+      if (!newMsgs.length) return;
+
+      removeEmpty();
+      const atBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight < 60;
+      newMsgs.forEach(m => { renderMessage(m); lastId = m.id; });
+      if (atBottom) chatArea.scrollTop = chatArea.scrollHeight;
+    } catch (_) {
+      hdSub.textContent = "Connection error";
+    }
+  }
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    feedback.textContent = "";
+    const text = input.value.trim();
+    if (!text) return;
+    sendBtn.disabled = true;
+
+    const res  = await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, name: myName })
+    });
+    const data = await res.json();
+    sendBtn.disabled = false;
+
+    if (!res.ok) { feedback.textContent = data.error || "Could not send."; return; }
+
+    input.value = "";
+    input.style.height = "auto";
+    charCount.textContent = "";
+    charCount.className = "";
+    input.focus();
+    await loadMessages();
+  });
+
+  input.focus();
+  loadMessages();
+  setInterval(loadMessages, 2500);
+</script>
+</body>
+</html>
