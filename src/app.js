@@ -18,6 +18,7 @@ function createApp() {
 
   app.post("/api/messages", (req, res) => {
     const text = typeof req.body.text === "string" ? req.body.text.trim() : "";
+    const name = typeof req.body.name === "string" ? req.body.name.trim().slice(0, 30) : "Anonymous";
 
     if (!text) {
       return res.status(400).json({ error: "Message cannot be empty." });
@@ -29,6 +30,7 @@ function createApp() {
     const message = {
       id: messages.length + 1,
       text,
+      name: name || "Anonymous",
       createdAt: new Date().toISOString()
     };
     messages.push(message);

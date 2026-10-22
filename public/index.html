@@ -3,81 +3,389 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DevOps Demo — Chat App</title>
+  <title>Chat App</title>
   <style>
-    :root { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: #172033; background: #f3f6fb; }
-    * { box-sizing: border-box; }
-    body { margin: 0; padding: 32px 16px; }
-    main { max-width: 720px; margin: 0 auto; background: white; border: 1px solid #dce3ee; border-radius: 18px; padding: 24px; box-shadow: 0 12px 35px #15284b12; }
-    h1 { margin: 0 0 6px; } .muted { color: #667085; }
-    .status { display: inline-flex; gap: 8px; align-items: center; padding: 7px 11px; border-radius: 99px; background: #e8f8ef; color: #17683a; font-size: 13px; }
-    form { display: flex; gap: 10px; margin: 22px 0; }
-    input { min-width: 0; flex: 1; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px; font: inherit; }
-    button { border: 0; border-radius: 10px; padding: 12px 16px; background: #2457d6; color: white; font: inherit; font-weight: 650; cursor: pointer; }
-    button:hover { background: #1946b9; }
-    #messages { list-style: none; padding: 0; display: grid; gap: 10px; }
-    #messages li { background: #eef3ff; padding: 12px 14px; border-radius: 12px; overflow-wrap: anywhere; }
-    #feedback { min-height: 24px; color: #a32929; }
-    .note { border-top: 1px solid #e5eaf2; margin-top: 22px; padding-top: 14px; font-size: 13px; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #e5ddd5;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── app shell ── */
+    .app {
+      width: 100%;
+      max-width: 480px;
+      height: 100dvh;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 40px rgba(0,0,0,.18);
+    }
+
+    /* ── name modal ── */
+    #name-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    .modal-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      width: min(360px, 90vw);
+      box-shadow: 0 20px 50px rgba(0,0,0,.2);
+    }
+    .modal-box h2 { font-size: 1.15rem; color: #111; margin-bottom: 6px; }
+    .modal-box p { font-size: .88rem; color: #667; margin-bottom: 16px; }
+    .modal-box input {
+      width: 100%; border: 1.5px solid #d1d5db; border-radius: 10px;
+      padding: 11px 14px; font: inherit; font-size: 1rem; outline: none;
+      color: #111;
+    }
+    .modal-box input:focus { border-color: #25d366; }
+    .modal-box button {
+      width: 100%; margin-top: 12px;
+      background: #25d366; border: none; border-radius: 10px;
+      padding: 12px; color: #fff; font: inherit; font-size: 1rem;
+      font-weight: 700; cursor: pointer;
+    }
+    .modal-box button:hover { background: #1ebe5a; }
+
+    /* ── header ── */
+    header {
+      background: #075e54;
+      color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .hd-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: #128c7e;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem; flex-shrink: 0;
+    }
+    .hd-name { font-weight: 700; font-size: .98rem; }
+    .hd-sub { font-size: .75rem; color: #b2dfdb; margin-top: 1px; }
+    .hd-right { margin-left: auto; font-size: .72rem; color: #b2dfdb; }
+
+    /* ── wallpaper chat area ── */
+    #chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background-color: #e5ddd5;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9b8a8' fill-opacity='0.18'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      scroll-behavior: smooth;
+    }
+
+    .empty-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 6px; color: #888; font-size: .9rem;
+      padding: 40px 0;
+    }
+    .empty-icon { font-size: 2.2rem; }
+
+    /* date chip */
+    .date-chip {
+      align-self: center;
+      background: #e1f3fb;
+      color: #555;
+      font-size: .72rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin: 6px 0;
+    }
+
+    /* ── bubbles ── */
+    .bubble-wrap {
+      display: flex;
+      flex-direction: column;
+      max-width: 78%;
+    }
+    .bubble-wrap.me { align-self: flex-end; align-items: flex-end; }
+    .bubble-wrap.them { align-self: flex-start; align-items: flex-start; }
+
+    .bubble {
+      padding: 7px 10px 5px;
+      border-radius: 8px;
+      font-size: .93rem;
+      line-height: 1.45;
+      position: relative;
+      word-break: break-word;
+      box-shadow: 0 1px 1px rgba(0,0,0,.1);
+    }
+    .me .bubble {
+      background: #dcf8c6;
+      border-top-right-radius: 2px;
+      color: #111;
+    }
+    .them .bubble {
+      background: #fff;
+      border-top-left-radius: 2px;
+      color: #111;
+    }
+    .bubble-name {
+      font-size: .72rem;
+      font-weight: 700;
+      color: #128c7e;
+      margin-bottom: 2px;
+    }
+    .me .bubble-name { color: #075e54; }
+    .bubble-meta {
+      font-size: .67rem;
+      color: #888;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      justify-content: flex-end;
+    }
+    .tick { color: #4fc3f7; }
+
+    /* ── input bar ── */
+    .input-bar {
+      background: #f0f0f0;
+      border-top: 1px solid #ddd;
+      padding: 8px 10px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .input-wrap {
+      flex: 1;
+      background: #fff;
+      border-radius: 24px;
+      border: none;
+      display: flex;
+      align-items: flex-end;
+      padding: 6px 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    #message-input {
+      flex: 1; border: none; outline: none;
+      font: inherit; font-size: .95rem;
+      background: transparent; color: #111;
+      resize: none; max-height: 90px;
+      scrollbar-width: none; line-height: 1.4;
+    }
+    #message-input::placeholder { color: #aaa; }
+    #char-count { font-size: .68rem; color: #bbb; align-self: flex-end; padding-bottom: 1px; white-space: nowrap; }
+    #char-count.warn { color: #f59e0b; }
+    #char-count.over { color: #ef4444; }
+
+    #send-btn {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: #25d366; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(37,211,102,.35);
+      transition: background .15s;
+    }
+    #send-btn:hover { background: #1ebe5a; }
+    #send-btn:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+    #send-btn svg { width: 22px; height: 22px; fill: #fff; }
+
+    #feedback { font-size: .78rem; color: #e53e3e; padding: 2px 16px 4px; background: #f0f0f0; min-height: 0; }
   </style>
 </head>
 <body>
-<main>
-  <span class="status"><span aria-hidden="true">●</span> Chat App demo</span>
-  <h1>DevOps Chat App</h1>
-  <p class="muted">Send a message, then follow how code is tested, packaged and deployed.</p>
-  <form id="message-form">
-    <input id="message-input" maxlength="280" placeholder="Type a message…" aria-label="Message" required>
-    <button type="submit">Send</button>
+
+<!-- Name modal -->
+<div id="name-modal">
+  <div class="modal-box">
+    <h2>👋 Welcome to Chat App</h2>
+    <p>Enter your name to join the room. Open this in another tab to chat with yourself!</p>
+    <input id="name-input" maxlength="30" placeholder="Your name…" autocomplete="off">
+    <button id="join-btn">Join Chat</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- Header -->
+  <header>
+    <div class="hd-avatar">C</div>
+    <div>
+      <div class="hd-name">Chat Room</div>
+      <div class="hd-sub" id="hd-sub">Connecting…</div>
+    </div>
+    <div class="hd-right" id="hd-right"></div>
+  </header>
+
+  <!-- Chat -->
+  <div id="chat-area">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">💬</div>
+      <div>No messages yet. Say hello!</div>
+    </div>
+  </div>
+
+  <!-- Feedback -->
+  <div id="feedback" role="status"></div>
+
+  <!-- Input -->
+  <form class="input-bar" id="message-form">
+    <div class="input-wrap">
+      <textarea id="message-input" rows="1" maxlength="280" placeholder="Type a message…" aria-label="Message"></textarea>
+      <span id="char-count"></span>
+    </div>
+    <button type="submit" id="send-btn" aria-label="Send">
+      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+    </button>
   </form>
-  <p id="feedback" role="status"></p>
-  <h2>Messages</h2>
-  <ul id="messages"><li class="muted">Loading messages…</li></ul>
-  <p class="note muted">Demo note: messages are stored in memory and reset when the server restarts. This is not a production chat service.</p>
-</main>
+</div>
+
 <script>
-  const list = document.querySelector("#messages");
-  const form = document.querySelector("#message-form");
-  const input = document.querySelector("#message-input");
-  const feedback = document.querySelector("#feedback");
+  let myName = "";
+  let lastId = 0;
+  let pollTimer = null;
+
+  const modal = document.getElementById("name-modal");
+  const nameInput = document.getElementById("name-input");
+  const joinBtn = document.getElementById("join-btn");
+  const chatArea = document.getElementById("chat-area");
+  const form = document.getElementById("message-form");
+  const input = document.getElementById("message-input");
+  const feedback = document.getElementById("feedback");
+  const charCount = document.getElementById("char-count");
+  const sendBtn = document.getElementById("send-btn");
+  const hdSub = document.getElementById("hd-sub");
+  const hdRight = document.getElementById("hd-right");
+
+  // ── join ──
+  nameInput.focus();
+  nameInput.addEventListener("keydown", e => { if (e.key === "Enter") joinBtn.click(); });
+
+  joinBtn.addEventListener("click", () => {
+    const n = nameInput.value.trim();
+    if (!n) { nameInput.focus(); return; }
+    myName = n;
+    modal.remove();
+    hdSub.textContent = "You: " + myName;
+    input.focus();
+    loadMessages();
+    pollTimer = setInterval(loadMessages, 2500);
+  });
+
+  // ── textarea auto-resize ──
+  input.addEventListener("input", () => {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 90) + "px";
+    const len = input.value.length;
+    charCount.textContent = len > 200 ? len + "/280" : "";
+    charCount.className = len > 260 ? "over" : len > 220 ? "warn" : "";
+  });
+
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+  });
+
+  // ── helpers ──
+  function timeStr(iso) {
+    return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function todayStr() {
+    return new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+  }
+
+  function removeEmpty() {
+    const es = document.getElementById("empty-state");
+    if (es) es.remove();
+  }
+
+  let shownDateChip = false;
+
+  function renderMessage(msg) {
+    const isMe = msg.name === myName;
+
+    if (!shownDateChip) {
+      shownDateChip = true;
+      const chip = document.createElement("div");
+      chip.className = "date-chip";
+      chip.textContent = todayStr();
+      chatArea.appendChild(chip);
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "bubble-wrap " + (isMe ? "me" : "them");
+    wrap.dataset.id = msg.id;
+
+    const nameEl = document.createElement("div");
+    nameEl.className = "bubble-name";
+    nameEl.textContent = isMe ? "You" : msg.name;
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = msg.text;
+
+    const meta = document.createElement("div");
+    meta.className = "bubble-meta";
+    meta.innerHTML = timeStr(msg.createdAt) + (isMe ? ' <span class="tick">✓✓</span>' : '');
+
+    wrap.appendChild(nameEl);
+    wrap.appendChild(bubble);
+    wrap.appendChild(meta);
+    chatArea.appendChild(wrap);
+  }
 
   async function loadMessages() {
-    const response = await fetch("/api/messages");
-    const data = await response.json();
-    list.replaceChildren();
-    if (!data.messages.length) {
-      const item = document.createElement("li");
-      item.className = "muted";
-      item.textContent = "No messages yet. Send the first one!";
-      list.append(item);
-      return;
-    }
-    for (const message of data.messages) {
-      const item = document.createElement("li");
-      item.textContent = message.text;
-      list.append(item);
+    try {
+      const res = await fetch("/api/messages");
+      const data = await res.json();
+      const msgs = data.messages;
+
+      hdRight.textContent = msgs.length + " msg" + (msgs.length !== 1 ? "s" : "");
+
+      const newMsgs = msgs.filter(m => m.id > lastId);
+      if (!newMsgs.length) return;
+
+      removeEmpty();
+      const wasAtBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight < 60;
+
+      newMsgs.forEach(m => { renderMessage(m); lastId = m.id; });
+
+      if (wasAtBottom) chatArea.scrollTop = chatArea.scrollHeight;
+    } catch (_) {
+      hdSub.textContent = "Connection error";
     }
   }
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
     feedback.textContent = "";
-    const response = await fetch("/api/messages", {
+    const text = input.value.trim();
+    if (!text) return;
+    sendBtn.disabled = true;
+
+    const res = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: input.value })
+      body: JSON.stringify({ text, name: myName })
     });
-    const data = await response.json();
-    if (!response.ok) {
-      feedback.textContent = data.error || "Could not send message.";
-      return;
-    }
-    input.value = "";
-    await loadMessages();
-  });
+    const data = await res.json();
+    sendBtn.disabled = false;
 
-  loadMessages().catch(() => {
-    list.textContent = "Could not connect to the server. Check the application logs.";
+    if (!res.ok) { feedback.textContent = data.error || "Could not send."; return; }
+
+    input.value = "";
+    input.style.height = "auto";
+    charCount.textContent = "";
+    input.focus();
+    await loadMessages();
   });
 </script>
 </body>

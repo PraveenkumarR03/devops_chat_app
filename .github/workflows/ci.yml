@@ -1,4 +1,4 @@
-name: Chat App CI
+name: Chat App CI/CD
 
 on:
   push:
@@ -6,11 +6,16 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
-  test-and-build:
+  # ── 1. Test ─────────────────────────────────────────────────────────────────
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -25,5 +30,82 @@ jobs:
       - name: Run automated tests
         run: npm test
 
-      - name: Build Docker image
-        run: docker build -t chat-app-demo:${{ github.sha }} .
+  # ── 2. Build & push Docker image (only on push to main, not PRs) ────────────
+  build-and-push:
+    name: Build and Push Docker Image
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/devops_chat_app:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/devops_chat_app:latest
+
+  # ── 3. Deploy to Render ─────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Render
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Trigger Render deployment
+        env:
+          RENDER_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE="docker.io/${DOCKERHUB_USERNAME}/devops_chat_app:${IMAGE_TAG}"
+
+          ENCODED_IMAGE=$(python3 -c \
+            "from urllib.parse import quote; print(quote('${IMAGE}', safe=''))")
+
+          curl --fail --silent --show-error \
+            --request POST \
+            "${RENDER_HOOK}&imgURL=${ENCODED_IMAGE}"
+
+  # ── 4. Create GitHub Release tag ────────────────────────────────────────────
+  release:
+    name: Create GitHub Release
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          TAG="v$(date +'%Y.%m.%d')-${GITHUB_SHA::7}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "Release ${{ steps.tag.outputs.tag }}"
+          body: |
+            Deployed automatically from commit ${{ github.sha }}
+
+            **Docker image:** `praveenkumarr03/devops_chat_app:${{ github.sha }}`
+          generate_release_notes: true
