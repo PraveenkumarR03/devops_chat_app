@@ -12,6 +12,7 @@ function createApp() {
     res.json({ status: "ok" });
   });
 
+//comment
   app.get("/api/messages", (_req, res) => {
     res.json({ messages });
   });
