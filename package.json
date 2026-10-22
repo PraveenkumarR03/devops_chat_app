@@ -1,0 +1,14 @@
+{
+  "name": "chat-app-devops-demo",
+  "version": "1.0.0",
+  "description": "Beginner-friendly Chat App for a DevOps lecture",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": { "express": "^5.1.0" },
+  "devDependencies": { "supertest": "^7.1.4" }
+}
